@@ -1198,7 +1198,7 @@
     var resolutionMultiplier = 1;
     var velocityToSizeRatios = {};
     var toggles = {
-        drawingPoints: false,
+        drawDebug: false,
         autoPilot: false
     };
     var state = {
@@ -1297,6 +1297,7 @@
     }
 
     function drawLine(x1, y1, x2, y2, color, width) {
+        if (!toggles.drawDebug) return;
         var ctx = getContext();
         ctx.save();
         ctx.lineWidth = width || 1;
@@ -1335,7 +1336,7 @@
     }
 
     function flushDrawPoints() {
-        if (!toggles.drawingPoints) {
+        if (!toggles.drawDebug) {
             return;
         }
         var ctx = getContext();
@@ -1766,7 +1767,7 @@
 
     self.addEventListener('keydown', function (e) {
         if (!(84 != e.keyCode)) {
-            toggles.drawingPoints = !toggles.drawingPoints;
+            toggles.drawDebug = !toggles.drawDebug;
         }
         if (!(65 != e.keyCode)) {
             toggles.autoPilot = !toggles.autoPilot;
