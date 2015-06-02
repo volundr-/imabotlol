@@ -1226,7 +1226,7 @@
     };
 
     SamplePoint.prototype.updateRisk = function (me) {
-        this.risk = calculateRisk(this.x + me.x, this.y + me.y, me);
+        this.risk = calculateRisk([this.x + me.x, this.y + me.y], me);
     };
 
     SamplePoint.prototype.getChainRiskTotal = function () {
@@ -1289,6 +1289,7 @@
                 drawLine(player.x, player.y, player.x + player.velX, player.y + player.velY, '#000', 5);
             });
 
+            // Draw velocity line
             drawLine(me.x, me.y, me.x + me.velX, me.y + me.velY, '#000', 5);
             findBestDirection();
             drawBestDirectionLine();
@@ -1307,6 +1308,10 @@
         ctx.restore();
     }
 
+    /**
+     *
+     * @returns Cell
+     */
     function getBiggestMe() {
         var me;
         _.each(getMe(), function (m) {
@@ -1397,7 +1402,7 @@
 
     function findBestDirection() {
         var bestRisk = null, v, me = getBiggestMe(),
-            x = 0, y = 0, newX, newY;
+            x = 0, y = 0, newVel = [0,0];
 
         _.each(sampleHeads, function (head) {
             v = [head.getChainRiskTotal(), head];
@@ -1417,7 +1422,7 @@
             // TODO: use dirty flag
             lastSampledSize = 0;
         }
-        var autoPilotMagnitude = getMagnitude(x, y);
+        var autoPilotMagnitude = getMagnitude([x, y]);
         if (autoPilotMagnitude < me.size * 2) {
             resolutionMultiplier *= 2;
             // force recreation of sample points
@@ -1425,27 +1430,48 @@
             lastSampledSize = 0;
         }
 
-        newX = me.x + x;
-        newY = me.y + y;
-        if (_.isNaN(autoPilotX)) {
-            autoPilotX = newX;
-        }
-        if (_.isNaN(autoPilotY)) {
-            autoPilotY = newY;
-        }
+        // [x, y] is the vector showing the direction of the risk/reward gradient at the location of
+        // the player
+        newVel = [x, y];
 
-        // Take average of previous best direction and new best direction to smooth behavior.
-        autoPilotX = (me.x + x + autoPilotX) / 2;
-        autoPilotY = (me.y + y + autoPilotY) / 2;
+        // Scale the vector to the approximate maximum achievable velocity of the player
+        newVel = scaleMagnitudeTo(newVel, me.getMaxVelocity());
+
+        me.bestDirection = _.clone(newVel);
+
+        // Add the difference between the current velocity vector and the desired velocity vector
+        // to the desired velocity vector - this will make the steering "overcorrect" and get
+        // on target faster.
+        newVel[0] += newVel[0] - me.velX;
+        newVel[1] += newVel[1] - me.velY;
+
+        // Re-scale the final steering vector to slightly more than the maximum achievable
+        // velocity of the player.
+        newVel = scaleMagnitudeTo(newVel, me.getMaxVelocity() * 1.1);
+
+        // Set your course for the Alderaan system.
+        autoPilotX = me.x + newVel[0];
+        autoPilotY = me.y + newVel[1];
     }
 
-    function getMagnitude(x, y) {
-        return Math.sqrt(x * x + y * y);
+    /**
+     * scale a vector so its magnitude equals mag
+     * @param vec
+     * @param mag
+     */
+    function scaleMagnitudeTo(vec, mag) {
+        var factor = mag / getMagnitude(vec);
+        return [vec[0] * factor, vec[1] * factor];
+    }
+
+    function getMagnitude(vec) {
+        return Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1]);
     }
 
     function drawBestDirectionLine() {
         var me = getBiggestMe();
         drawLine(me.x, me.y, autoPilotX, autoPilotY, '#0C0', 5);
+        drawLine(me.x, me.y, me.bestDirection[0] + me.x, me.bestDirection[1] + me.y, '#C0C', 5);
     }
 
     function calculatePosition(angle, distance, center) {
@@ -1455,14 +1481,19 @@
         ]
     }
 
-    function computeDistance(x1, y1, x2, y2) {
-        var xdis = x1 - x2; // <--- FAKE AmS OF COURSE!
-        var ydis = y1 - y2;
+    function computeDistance(v1, v2) {
+        var xdis = v1[0] - v2[0]; // <--- FAKE AmS OF COURSE!
+        var ydis = v1[1] - v2[1];
         return Math.sqrt(Math.pow(xdis, 2) + Math.pow(ydis, 2));
     }
 
-    function getRiskConstant(me, player, distance) {
+    function getRiskConstant(me, player) {
         var relativeSize = me.size / player.size;
+        if (player.name == "ima bot lol") {
+            return -50;
+        }
+
+        // Special handling for viruses
         if (player.isVirus) {
             if (relativeSize > 0.9) {
                 // Bigs can have a lot of risk from viruses
@@ -1472,20 +1503,22 @@
             return state.threatened ? 1 : 0;
         }
 
-        if (player.size < 20) {
+        /*if (player.size < 20) {
             // Calculate risk constant for foods.
             // We want to eat foods that are close by more than far away foods.
             // This equation takes that preference into account.
-            return 1 + Math.max(Math.min(2, (me.size * (2 / log10(me.size))) / distance), 0);
-        }
+            //return 1 + Math.max(Math.min(2, (me.size * (2 / log10(me.size))) / distance), 0);
+            return 1 / relativeSize;
+        }*/
 
-        if (relativeSize >= 2.5) {
+        // TODO: reimplement juice for splitting
+        /*if (relativeSize >= 2.5) {
             // I can split and still eat them
-            return relativeSize / 2;
-        }
+            return 1 / relativeSize;
+        }*/
         if (relativeSize >= 1.25) {
             // I can absorb
-            return 1;
+            return 1 / relativeSize;
         }
         if (relativeSize >= 0.85) {
             // No risk
@@ -1505,47 +1538,58 @@
 
     /**
      *
-     * @param x
-     * @param y
-     * @param Cell me
+     * @param position
+     * @param me
      * @returns {*}
      */
-    function calculateRisk(x, y, me) {
-        var risk = getSideAndCornerRisk(x, y, me.size),
+    function calculateRisk(position, me) {
+        var risk = getSideAndCornerRisk(position, me.size),
             Cr = 0,
+            intersectDistance = 0,
             addedRisk = 0,
-            otherX, otherY, deltaTToPoint, projectedDistance;
+            power = 0,
+            otherPos,
+            // deltaTToPoint = amount of time it would take for player to reach this position at full velocity
+            deltaTToPoint = me.getDeltaTForPosition(position),
+            projectedDistance;
 
         _.each(getOthers(), function (other) {
             if (isMe(other)) {
                 return;
             }
-            // Get amount of time it would take to reach this position
-            deltaTToPoint = me.getDeltaTForPosition(x, y);
 
             // Extrapolate other's position forward by deltaTToPoint,
             // assuming they continue moving in their current direction
             // TODO incorporate dv/dt as well
-            otherX = other.x + other.velX * deltaTToPoint;
-            otherY = other.y + other.velY * deltaTToPoint;
+            otherPos = other.getProjectedPosition(deltaTToPoint);
 
-            projectedDistance = computeDistance(x, y, otherX, otherY);
+            projectedDistance = computeDistance(position, otherPos);
+            intersectDistance = me.size / 2 + other.size / 2;
 
-            Cr = getRiskConstant(me, other, projectedDistance);
+            // This constant makes it so that safety is preferred over food, but hunting behavior in
+            // a safe environment is still very effective.
+            power = me.size > other.size ? 1 : 2;
 
-            addedRisk = (Cr * other.size) / (1 + Math.max(0, projectedDistance - other.size / 2))
+
+            Cr = getRiskConstant(me, other);
+            addedRisk = (Cr * Math.PI * Math.pow(Math.max(me.size, other.size) / Math.min(me.size, other.size), power))
+                / (1 + Math.pow(Math.max(0, projectedDistance - intersectDistance), 0.7));
+
+//            addedRisk = (Cr * other.size) / (1 + Math.max(0, projectedDistance - other.size / 2 - me.size / 2));
+
+            // Viruses that offer shelter should be favorable, but not too favorable...
             if (other.isVirus) {
-                addedRisk = Math.max(-2, Math.min(2, addedRisk))
+                addedRisk = Math.min(2, addedRisk)
             }
             risk += addedRisk;
         });
         return risk;
     }
 
-    function getSideAndCornerRisk(x, y, size) {
+    function getSideAndCornerRisk(position, size) {
         var maxCoord = 11200, mco2 = maxCoord / 2,
-            xDistFromSide = Math.min(x, maxCoord - x) - size / 2,
-            yDistFromSide = Math.min(y, maxCoord - y) - size / 2,
+            xDistFromSide = Math.min(position[0], maxCoord - position[0]) - size / 2,
+            yDistFromSide = Math.min(position[1], maxCoord - position[1]) - size / 2,
             dangerZone = 400;
 
         return -1 * ((dangerZone / Math.max(dangerZone / 10, xDistFromSide + 1) + dangerZone / Math.max(dangerZone / 10, yDistFromSide + 1)))
@@ -1594,7 +1638,7 @@
 
         // TODO calculate angle between threat's velocity vector and the vector pointing to me
         // If headed towards me, i'm threatened
-        state.threatened = calculateRisk(me.x, me.y, me) < -1.5;
+        state.threatened = calculateRisk([me.x, me.y], me) < -1.5;
 
         createSamplePoints();
         updateSamplePoints();
@@ -1641,6 +1685,7 @@
     }
 
     // Cell velocity tracking
+    Cell.prototype.bestDirection = [0,0];
     Cell.prototype.pastPositions = null;
     Cell.prototype.velX = 0;
     Cell.prototype.velY = 0;
@@ -1703,12 +1748,20 @@
 
     /**
      * Compute change in time required to reach position given by [x,y]
-     * @param x
-     * @param y
+     * @param vec
      * @returns {number}
      */
-    Cell.prototype.getDeltaTForPosition = function(x, y) {
-        return computeDistance(this.x, this.y, x, y) / this.getMaxVelocity();
+    Cell.prototype.getDeltaTForPosition = function(vec) {
+        return computeDistance([this.x, this.y], vec) / this.getMaxVelocity();
+    };
+
+    /**
+     * Given known position, velocity and acceleration, project the cell's velocity after a delta time of
+     * t.
+     * @param {number} t time
+     */
+    Cell.prototype.getProjectedPosition = function(t) {
+        return [this.x + this.velX * t, this.y + this.velY * t];
     };
 
     self.addEventListener('keydown', function (e) {
