@@ -1622,7 +1622,7 @@
         if (!me) {
             if (toggles.autoPilot) {
                 startTime = Date.now();
-                setNick("Ima bot lol");
+                setNick("ima bot lol");
             }
             return;
         }
