@@ -1703,11 +1703,12 @@
     function updateDestroyed() {
         var toRemove = [],
             now = Date.now(),
-            me = getBiggestMe();
+            me = getBiggestMe(),
+            liveOthers = _.pluck(getOthers(), 'id');
 
         _.each(destroyed, function(cell) {
             var elapsed = now - cell.destroyedTime;
-            if (!cell.destroyed || elapsed > destroyedTtl) {
+            if (!cell.destroyed || elapsed > destroyedTtl || _.contains(liveOthers, cell.id)) {
                 toRemove.push(cell);
                 return;
             }
