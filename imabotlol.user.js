@@ -1182,6 +1182,10 @@
         return N;
     }
 
+    function isTeams() {
+        return !_.isEmpty(L);
+    }
+
     /** my variables */
 
     var dPoints = [];
@@ -1197,9 +1201,11 @@
     var autoPilotY = -1;
     var resolutionMultiplier = 1;
     var velocityToSizeRatios = {};
+    var caches = {};
     var toggles = {
         drawDebug: false,
-        autoPilot: false
+        autoPilot: false,
+        colorEnemies: true
     };
     var state = {
         isThreatened: false
@@ -1212,6 +1218,22 @@
 
     function set(k, v) {
         return eval(k + ' = ' + JSON.stringify(v))
+    }
+
+    function isCached(k) {
+        return _.isUndefined(caches[k]);
+    }
+
+    function setCache(k, v) {
+        caches[k] = v;
+    }
+
+    function getCache(k) {
+        return _.isUndefined(caches[k]) ? undefined : caches[k];
+    }
+
+    function clearCache() {
+        caches = {};
     }
 
     function SamplePoint(x, y) {
@@ -1250,6 +1272,9 @@
         if (getMe().length) {
             var me = getBiggestMe();
             _.each(getOthers(), function (player) {
+                if (player.originalColor === null) {
+                    player.originalColor = player.color;
+                }
                 player.color = getEnemyColor(me, player);
             });
         }
@@ -1260,8 +1285,14 @@
     }
 
     function getEnemyColor(me, player) {
+        if (!toggles.colorEnemies) {
+            return player.originalColor;
+        }
         if (_.contains(getMe(), player)) {
-            return "#000";
+            return "#666";
+        }
+        if (!me.isEnemy(player)) {
+            return "#090";
         }
         if (player.isVirus || player.size < 20) return player.color;
         if (player.size / 2 > 1.1 * me.size) {
@@ -1489,6 +1520,10 @@
     }
 
     function getRiskConstant(me, player) {
+        if (!me.isEnemy(player)) {
+            // In team mode, we want to subtly avoid teammates.
+            return -0.5;
+        }
         var relativeSize = me.size / player.size;
         if (player.name == "ima bot lol") {
             return -50;
@@ -1617,12 +1652,17 @@
         }
     }
 
+    function startAI() {
+        startTime = Date.now();
+        clearCache();
+        setNick("ima bot lol");
+    }
+
     function updateAI() {
         var me = getBiggestMe();
         if (!me) {
             if (toggles.autoPilot) {
-                startTime = Date.now();
-                setNick("ima bot lol");
+                startAI();
             }
             return;
         }
@@ -1765,12 +1805,62 @@
         return [this.x + this.velX * t, this.y + this.velY * t];
     };
 
+    Cell.prototype.originalColor = null;
+    // Todo: cache this
+    Cell.prototype.isEnemy = function(other) {
+        var cacheKey = 'isEnemy.' + this.id + '.' + other.id;
+        if (!isCached(cacheKey)) {
+            return getCache(cacheKey);
+        }
+        if (!isTeams() || other.originalColor === null || this.originalColor === null || other.size < 20) {
+            return true;
+        }
+        var orgb = other.getOriginalRGB(),
+            rgb = this.getOriginalRGB(),
+            e = Math.abs(orgb[0] - rgb[0]) +
+                Math.abs(orgb[1] - rgb[1]) +
+                Math.abs(orgb[2] - rgb[2]) > 150; // 150 seems reasonable...
+        setCache(cacheKey, e);
+        return e;
+    };
+
+    Cell.prototype.getOriginalRGB = function() {
+        var r, g, b;
+        r = g = b = '00';
+        if (this.originalColor === null) {
+            return [0, 0, 0];
+        }
+        if (this.originalColor.length == 4) {
+            r = this.originalColor.substr(1,1);
+            r = r + r;
+            g = this.originalColor.substr(2,1);
+            g = g + g;
+            b = this.originalColor.substr(3,1);
+            b = b + b;
+        } else if (this.originalColor.length == 7) {
+            r = this.originalColor.substr(1,2);
+            g = this.originalColor.substr(3,2);
+            b = this.originalColor.substr(5,2);
+        }
+        return [
+            parseInt(r, 16),
+            parseInt(g, 16),
+            parseInt(b, 16)
+        ]
+    };
+
     self.addEventListener('keydown', function (e) {
-        if (!(84 != e.keyCode)) {
+        if (!(68 != e.keyCode)) {
             toggles.drawDebug = !toggles.drawDebug;
+        }
+        if (!(84 != e.keyCode)) {
+            setGameMode(":teams");
         }
         if (!(65 != e.keyCode)) {
             toggles.autoPilot = !toggles.autoPilot;
+        }
+        if (!(67 != e.keyCode)) {
+            toggles.colorEnemies = !toggles.colorEnemies;
         }
     }, false);
 
@@ -1810,5 +1900,11 @@
         updateAI();
     };
     eval(processDataFunc + ' = patchedProcessDataFunc');
+
+    var originalSetNick = setNick;
+    window.setNick = function(a) {
+        originalSetNick(a);
+        clearCache();
+    };
 
 })(window, jQuery);

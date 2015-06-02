@@ -5,4 +5,6 @@ This is a bot that navigates using a gradient descent algorithm. The bot generat
 instructions
 -
 * Press a to start the bot.
-* Press t to view debug shit.
+* Press d to view debug shit.
+* Press t to switch mode to teams.
+* Press c to turn on enemy coloration.
