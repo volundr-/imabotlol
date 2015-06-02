@@ -1546,8 +1546,8 @@
             if (time > bestTime)
                 bestTime = time;
         }
-        if (me.size > bestRound) {
-            bestRound = parseInt(me.size);
+        if (~~(G / 100) > bestRound) {
+            bestRound = ~~(G / 100);
         }
 
         state.threatened = calculateRisk(me.x, me.y, me) < -1.5;
