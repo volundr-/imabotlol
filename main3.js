@@ -1,3 +1,4 @@
+$.getScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.js");
 (function (f, g) {
     function Ga() {
         fa = !0;
@@ -1141,6 +1142,10 @@
     var processDataFunc = 'Ha';
     var Cell = Aa;
 
+    function getUpdateTime() {
+        return H;
+    }
+
     function getRatio() {
         return h;
     }
@@ -1179,6 +1184,7 @@
     var autoPilotX = -1;
     var autoPilotY = -1;
     var resolutionMultiplier = 1;
+    var velocityToSizeRatios = [];
     var toggles = {
         drawingPoints: false,
         autoPilot: false
@@ -1267,10 +1273,11 @@
                     return;
                 }
 
-                var mePt = getAveragePoint(me.points), playerPt = getAveragePoint(player.points);
-                drawLine(mePt[0], mePt[1], playerPt[0], playerPt[1], getEnemyColor(me, player), 3);
+                drawLine(me.x, me.y, player.x, player.y, getEnemyColor(me, player), 3);
+                drawLine(player.x, player.y, player.x + player.velX, player.y + player.velY, '#000', 5);
             });
 
+            drawLine(me.x, me.y, me.x + me.velX, me.y + me.velY, '#000', 5);
             findBestDirection();
             drawBestDirectionLine();
         }
@@ -1298,15 +1305,6 @@
 
     function isMe(other) {
         return _.contains(getMe(), other);
-    }
-
-    function getAveragePoint(points) {
-        var x = 0, y = 0;
-        _.each(points, function (point) {
-            x += point.x;
-            y += point.y
-        });
-        return [x / points.length, y / points.length];
     }
 
     function drawPoint(x_1, y_1, drawColor) {
@@ -1447,7 +1445,7 @@
         y = y | me.y;
         var relativeSize = me.size / player.size;
         if (player.isVirus) {
-            if (relativeSize > 1) {
+            if (relativeSize > 0.9) {
                 // Bigs can have a lot of risk from viruses
                 return -10 * relativeSize;
             }
@@ -1601,6 +1599,48 @@
 
         destroyed = _.difference(destroyed, toRemove);
     }
+
+    // Cell velocity tracking
+    Cell.prototype.pastPositions = null;
+    Cell.prototype.velX = 0;
+    Cell.prototype.velY = 0;
+    Cell.prototype.oldUpdatePos = Cell.prototype.updatePos;
+    Cell.prototype.updatePos = function() {
+        this.oldUpdatePos();
+        if (this.isVirus || this.size < 20) return;
+        if (!_.isArray(this.pastPositions)) {
+            this.pastPositions = [];
+        }
+        this.pastPositions.push([this.x, this.y, (getUpdateTime() - this.updateTime) / 120]);
+        if (this.pastPositions.length > 20) {
+            this.pastPositions.shift();
+        }
+        this.velX = this.velY = 0;
+        var c = this,
+            x1 = null, y1, t1, dt;
+        _.each(this.pastPositions, function(p) {
+            if (x1 === null) {
+                x1 = p[0];
+                y1 = p[1];
+                t1 = p[2];
+                return;
+            }
+
+            // Get delta t and convert to seconds
+            dt = p[2] - t1 / 10;
+            c.velX += (p[0] - x1) / dt;
+            c.velY += (p[1] - y1) / dt;
+            x1 = p[0];
+            y1 = p[1];
+            t1 = p[2];
+        });
+        this.velX /= this.pastPositions.length - 1;
+        this.velY /= this.pastPositions.length - 1;
+        var magnitude = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
+        if (_.isNumber(magnitude) && magnitude > 0.5 && magnitude < 500) {
+            velocityToSizeRatios.push([magnitude, this.size]);
+        }
+    };
 
     self.addEventListener('keydown', function (e) {
         if (!(84 != e.keyCode)) {
