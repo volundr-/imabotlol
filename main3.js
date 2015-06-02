@@ -1139,6 +1139,7 @@
     var mouseMoveApplierFunc = 'ha';
     var buildRatioFunc = 'Ma';
     var processDataFunc = 'Ha';
+    var Cell = Aa;
 
     function getRatio() {
         return h;
@@ -1164,9 +1165,12 @@
         return N;
     }
 
+    /** my variables */
+
     var dPoints = [];
     var samplePoints = [];
     var sampleHeads = [];
+    var destroyed = [];
     var lastSampledSize = 0;
     var bestRound = 0;
     var bestTime = 0;
@@ -1208,20 +1212,20 @@
     };
 
     SamplePoint.prototype.getChainRiskTotal = function () {
-        return this.risk + (this.next ? this.next.getChainRiskTotal() : 0);
+        // Chain tails are weighted less than chain heads.
+        return this.risk + (this.next ? 0.75 * this.next.getChainRiskTotal() : 0);
     };
 
     SamplePoint.prototype.getLastInChain = function () {
         return this.next ? this.next.getLastInChain() : this;
     };
 
-
     function getMe() {
         return l;
     }
 
     function getOthers() {
-        return n;
+        return n.concat(destroyed);
     }
 
     function preRender() {
@@ -1445,7 +1449,7 @@
         if (player.isVirus) {
             if (relativeSize > 1) {
                 // Bigs can have a lot of risk from viruses
-                return -10
+                return -10 * relativeSize;
             }
             // Small can like being near viruses
             return state.threatened ? 1 : 0;
@@ -1550,11 +1554,52 @@
             bestRound = ~~(G / 100);
         }
 
+        updateDestroyed();
+
         state.threatened = calculateRisk(me.x, me.y, me) < -1.5;
 
         createSamplePoints();
         updateSamplePoints();
         drawSamplePoints();
+    }
+
+    // Destroyed cells persist for 10 seconds
+    var destroyedTtl = 1E4;
+    Cell.prototype.destroyedTime = 0;
+    Cell.origSize = 0;
+    Cell.prototype.destroyOld = Cell.prototype.destroy;
+    Cell.prototype.destroy = function() {
+        if (!_.contains(destroyed, this)) {
+            destroyed.push(this);
+            this.destroyedTime = Date.now();
+            this.origSize = this.size;
+        }
+        this.destroyOld();
+    };
+
+    function updateDestroyed() {
+        var toRemove = [],
+            now = Date.now(),
+            me = getBiggestMe();
+
+        _.each(destroyed, function(cell) {
+            var elapsed = now - cell.destroyedTime;
+            if (!cell.destroyed || elapsed > destroyedTtl) {
+                toRemove.push(cell);
+                return;
+            }
+
+            // Size of cell gradually diminishes over time.
+            cell.size = cell.origSize * ((destroyedTtl - elapsed) / destroyedTtl);
+
+            // If size of remembered cell gets less than my size, forget it.
+            // We only need this memory for enemies, not food.
+            if (cell.size < me.size * 1.1) {
+                toRemove.push(cell);
+            }
+        });
+
+        destroyed = _.difference(destroyed, toRemove);
     }
 
     self.addEventListener('keydown', function (e) {
@@ -1571,9 +1616,9 @@
             _ratio = 1;
         }
         if (event.wheelDelta < 0) {
-            _ratio -= 0.1;
+            _ratio *= 0.9;
         } else if (event.wheelDelta > 0) {
-            _ratio += 0.1;
+            _ratio *= 1.1;
         }
         event.preventDefault();
     };
