@@ -1412,8 +1412,8 @@
         }
 
         // Take average of previous best direction and new best direction to smooth behavior.
-        autoPilotX = (me.x + x + autoPilotX + autoPilotX*0.5) / 2.5;
-        autoPilotY = (me.y + y + autoPilotY + autoPilotY*0.5) / 2.5;
+        autoPilotX = (me.x + x + autoPilotX) / 2;
+        autoPilotY = (me.y + y + autoPilotY) / 2;
     }
 
     function getMagnitude(x, y) {
