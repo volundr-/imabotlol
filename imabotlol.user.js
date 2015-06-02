@@ -1196,7 +1196,7 @@
     var autoPilotX = -1;
     var autoPilotY = -1;
     var resolutionMultiplier = 1;
-    var velocityToSizeRatios = [];
+    var velocityToSizeRatios = {};
     var toggles = {
         drawingPoints: false,
         autoPilot: false
@@ -1397,7 +1397,7 @@
 
     function findBestDirection() {
         var bestRisk = null, v, me = getBiggestMe(),
-            x = 0, y = 0;
+            x = 0, y = 0, newX, newY;
 
         _.each(sampleHeads, function (head) {
             v = [head.getChainRiskTotal(), head];
@@ -1412,7 +1412,7 @@
         // resolution when the simulation is dithering over where to go.
         if (resolutionMultiplier > 1) {
             // Reduce resolution multiplier to 1 if it is above
-            resolutionMultiplier -= (resolutionMultiplier - 1) / 25;
+            resolutionMultiplier -= (resolutionMultiplier - 1) / 60;
             // force recreation of sample points
             // TODO: use dirty flag
             lastSampledSize = 0;
@@ -1423,6 +1423,15 @@
             // force recreation of sample points
             // TODO: use dirty flag
             lastSampledSize = 0;
+        }
+
+        newX = me.x + x;
+        newY = me.y + y;
+        if (_.isNaN(autoPilotX)) {
+            autoPilotX = newX;
+        }
+        if (_.isNaN(autoPilotY)) {
+            autoPilotY = newY;
         }
 
         // Take average of previous best direction and new best direction to smooth behavior.
@@ -1452,9 +1461,7 @@
         return Math.sqrt(Math.pow(xdis, 2) + Math.pow(ydis, 2));
     }
 
-    function getRiskConstant(me, player, x, y) {
-        x = x | me.x;
-        y = y | me.y;
+    function getRiskConstant(me, player, distance) {
         var relativeSize = me.size / player.size;
         if (player.isVirus) {
             if (relativeSize > 0.9) {
@@ -1469,7 +1476,7 @@
             // Calculate risk constant for foods.
             // We want to eat foods that are close by more than far away foods.
             // This equation takes that preference into account.
-            return 1 + Math.max(Math.min(2, (me.size * (2 / log10(me.size))) / computeDistance(x, y, player.x, player.y)), 0);
+            return 1 + Math.max(Math.min(2, (me.size * (2 / log10(me.size))) / distance), 0);
         }
 
         if (relativeSize >= 2.5) {
@@ -1496,18 +1503,37 @@
         return Math.log(v) / Math.LN10;
     }
 
+    /**
+     *
+     * @param x
+     * @param y
+     * @param Cell me
+     * @returns {*}
+     */
     function calculateRisk(x, y, me) {
         var risk = getSideAndCornerRisk(x, y, me.size),
             Cr = 0,
-            addedRisk = 0;
+            addedRisk = 0,
+            otherX, otherY, deltaTToPoint, projectedDistance;
 
         _.each(getOthers(), function (other) {
             if (isMe(other)) {
                 return;
             }
-            Cr = getRiskConstant(me, other, x, y);
+            // Get amount of time it would take to reach this position
+            deltaTToPoint = me.getDeltaTForPosition(x, y);
 
-            addedRisk = (Cr * other.size) / (1 + Math.max(0, computeDistance(x, y, other.x, other.y) - other.size / 2))
+            // Extrapolate other's position forward by deltaTToPoint,
+            // assuming they continue moving in their current direction
+            // TODO incorporate dv/dt as well
+            otherX = other.x + other.velX * deltaTToPoint;
+            otherY = other.y + other.velY * deltaTToPoint;
+
+            projectedDistance = computeDistance(x, y, otherX, otherY);
+
+            Cr = getRiskConstant(me, other, projectedDistance);
+
+            addedRisk = (Cr * other.size) / (1 + Math.max(0, projectedDistance - other.size / 2))
             if (other.isVirus) {
                 addedRisk = Math.max(-2, Math.min(2, addedRisk))
             }
@@ -1566,6 +1592,8 @@
 
         updateDestroyed();
 
+        // TODO calculate angle between threat's velocity vector and the vector pointing to me
+        // If headed towards me, i'm threatened
         state.threatened = calculateRisk(me.x, me.y, me) < -1.5;
 
         createSamplePoints();
@@ -1616,14 +1644,17 @@
     Cell.prototype.pastPositions = null;
     Cell.prototype.velX = 0;
     Cell.prototype.velY = 0;
+    Cell.prototype.velMag = 0;
+    Cell.prototype.lastUpdateTime = 0;
     Cell.prototype.oldUpdatePos = Cell.prototype.updatePos;
     Cell.prototype.updatePos = function() {
         this.oldUpdatePos();
-        if (this.isVirus || this.size < 20) return;
+        if (this.isVirus || this.size < 20 || this.updateTime === this.lastUpdateTime) return;
         if (!_.isArray(this.pastPositions)) {
             this.pastPositions = [];
         }
-        this.pastPositions.push([this.x, this.y, (getUpdateTime() - this.updateTime) / 120]);
+        this.pastPositions.push([this.nx, this.ny, this.updateTime]);
+        this.lastUpdateTime = this.updateTime;
         if (this.pastPositions.length > 20) {
             this.pastPositions.shift();
         }
@@ -1639,19 +1670,45 @@
             }
 
             // Get delta t and convert to seconds
-            dt = p[2] - t1 / 10;
+            dt = (p[2] - t1) / 1000;
             c.velX += (p[0] - x1) / dt;
             c.velY += (p[1] - y1) / dt;
             x1 = p[0];
             y1 = p[1];
             t1 = p[2];
         });
-        this.velX /= this.pastPositions.length - 1;
-        this.velY /= this.pastPositions.length - 1;
-        //var magnitude = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
-        //if (_.isNumber(magnitude) && magnitude > 0.5 && magnitude < 500) {
-        //    velocityToSizeRatios.push([magnitude, this.size]);
-        //}
+        if (this.pastPositions.length > 1) {
+            this.velX /= this.pastPositions.length - 1;
+            this.velY /= this.pastPositions.length - 1;
+        }
+        this.velMag = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
+/*        if (_.isNumber(this.velMag) && this.velMag > 0.5 && this.velMag < 1000) {
+            if (_.isUndefined(velocityToSizeRatios[this.id])) {
+                velocityToSizeRatios[this.id] = [null,null];
+            }
+            if (velocityToSizeRatios[this.id][0] < this.velMag) {
+                velocityToSizeRatios[this.id] = [this.velMag, this.size];
+            }
+        }*/
+    };
+
+    /**
+     * Compute maximum velocity for this cell's size
+     * @returns {number}
+     */
+    Cell.prototype.getMaxVelocity = function () {
+        // This is obtained by plotting size vs velocity in excel, removing outliers, and applying a power trendline.
+        return 2045.9 * Math.pow(this.size, -0.409);
+    };
+
+    /**
+     * Compute change in time required to reach position given by [x,y]
+     * @param x
+     * @param y
+     * @returns {number}
+     */
+    Cell.prototype.getDeltaTForPosition = function(x, y) {
+        return computeDistance(this.x, this.y, x, y) / this.getMaxVelocity();
     };
 
     self.addEventListener('keydown', function (e) {
