@@ -1,4 +1,13 @@
-$.getScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.js");
+// ==UserScript==
+// @name         ima bot lol
+// @namespace    https://github.com/volundr-/imabotlol
+// @version      0.1
+// @description  whee ima bot lol
+// @author       Volundr
+// @match        http://agar.io/
+// @grant        none
+// ==/UserScript==
+
 (function (f, g) {
     function Ga() {
         fa = !0;
@@ -1123,6 +1132,9 @@ $.getScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.j
         }
     }
     /** PATCH BEGINS HERE **/
+        // Inject lodash
+    jQuery.getScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.js");
+
     /** Variable Fixups */
     /* 2d canvas Context */
 
@@ -1636,10 +1648,10 @@ $.getScript("https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.9.3/lodash.min.j
         });
         this.velX /= this.pastPositions.length - 1;
         this.velY /= this.pastPositions.length - 1;
-        var magnitude = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
-        if (_.isNumber(magnitude) && magnitude > 0.5 && magnitude < 500) {
-            velocityToSizeRatios.push([magnitude, this.size]);
-        }
+        //var magnitude = Math.sqrt(this.velX * this.velX + this.velY * this.velY);
+        //if (_.isNumber(magnitude) && magnitude > 0.5 && magnitude < 500) {
+        //    velocityToSizeRatios.push([magnitude, this.size]);
+        //}
     };
 
     self.addEventListener('keydown', function (e) {
