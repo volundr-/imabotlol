@@ -1613,7 +1613,8 @@
             // Extrapolate other's position forward by deltaTToPoint,
             // assuming they continue moving in their current direction
             // TODO incorporate dv/dt as well
-            otherPos = other.getProjectedPosition(deltaTToPoint);
+            // The 0.75 term here is to compensate for dv/dt - a bad fudge
+            otherPos = other.getProjectedPosition(deltaTToPoint * 0.75);
 
             projectedDistance = computeDistance(position, otherPos);
 
