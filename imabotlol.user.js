@@ -1394,14 +1394,14 @@
 
 
     function createSamplePoints() {
-        var numPoints = 3,
+        var numPoints = 4,
             me = getBiggestMe();
         if (!me) return;
         if (Math.abs(me.size - lastSampledSize) < 10) {
             return;
         }
 
-        var resolution = me.size * 1.5 * resolutionMultiplier,
+        var resolution = me.size  * resolutionMultiplier,
             pos,
             last, point;
         samplePoints = [];
@@ -1410,7 +1410,8 @@
         for (var angle = 0; angle < Math.PI * 2; angle += Math.PI / 10) {
             last = null;
             for (var i = numPoints; i > 0; i--) {
-                pos = calculatePosition(angle, i * resolution, [0, 0]);
+                // distance from center increases exponentially
+                pos = calculatePosition(angle, Math.pow(1.6, i) * resolution, [0, 0]);
                 point = new SamplePoint(pos[0], pos[1]);
                 if (last) {
                     point.next = last;
@@ -1553,11 +1554,15 @@
             return 1 / relativeSize;
         }*/
 
+        return getRiskConstantForRelativeSize(relativeSize);
+    }
+
+    function getRiskConstantForRelativeSize(relativeSize) {
         // TODO: reimplement juice for splitting
         /*if (relativeSize >= 2.5) {
-            // I can split and still eat them
-            return 1 / relativeSize;
-        }*/
+         // I can split and still eat them
+         return 1 / relativeSize;
+         }*/
         if (relativeSize >= 1.25) {
             // I can absorb
             return 1 / relativeSize;
@@ -1570,8 +1575,13 @@
             // I am in danger of being absorbed
             return -2.5;
         }
-        // They can split and eat me!
+
+        if (relativeSize >= 0.2) {
+            // They can (and want to) split and eat me!
         return -3.5;
+        }
+        // blobs that are huge in comparison to me are not that dangerous.
+        return -1;
     }
 
     function log10(v) {
@@ -1606,7 +1616,9 @@
             otherPos = other.getProjectedPosition(deltaTToPoint);
 
             projectedDistance = computeDistance(position, otherPos);
-            intersectDistance = me.size / 2 + other.size / 2;
+
+            // Give ourselves a bit of wiggle room in the intersect distance
+            intersectDistance = (me.size / 2 + other.size / 2) * 1.1;
 
             // This constant makes it so that safety is preferred over food, but hunting behavior in
             // a safe environment is still very effective.
