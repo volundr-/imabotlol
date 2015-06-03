@@ -1264,8 +1264,14 @@
         return l;
     }
 
-    function getOthers() {
+    function getOthers(includeDestroyed) {
+        if (_.isUndefined(includeDestroyed)) {
+            includeDestroyed = true;
+        }
+        if (includeDestroyed) {
         return n.concat(destroyed);
+    }
+        return n;
     }
 
     function preRender() {
@@ -1704,7 +1710,7 @@
         var toRemove = [],
             now = Date.now(),
             me = getBiggestMe(),
-            liveOthers = _.pluck(getOthers(), 'id');
+            liveOthers = _.pluck(getOthers(false), 'id');
 
         _.each(destroyed, function(cell) {
             var elapsed = now - cell.destroyedTime;
