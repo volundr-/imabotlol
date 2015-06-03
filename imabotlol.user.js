@@ -1761,7 +1761,7 @@
         }
         this.pastPositions.push([this.nx, this.ny, this.updateTime]);
         this.lastUpdateTime = this.updateTime;
-        if (this.pastPositions.length > 20) {
+        if (this.pastPositions.length > 10) {
             this.pastPositions.shift();
         }
         this.velX = this.velY = 0;
