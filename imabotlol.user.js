@@ -1253,7 +1253,7 @@
 
     SamplePoint.prototype.getChainRiskTotal = function () {
         // Chain tails are weighted less than chain heads.
-        return this.risk + (this.next ? 0.75 * this.next.getChainRiskTotal() : 0);
+        return this.risk;// + (this.next ? 0.75 * this.next.getChainRiskTotal() : 0);
     };
 
     SamplePoint.prototype.getLastInChain = function () {
@@ -1264,8 +1264,14 @@
         return l;
     }
 
-    function getOthers() {
-        return n.concat(destroyed);
+    function getOthers(includeDestroyed) {
+        if (_.isUndefined(includeDestroyed)) {
+            includeDestroyed = true;
+        }
+        if (includeDestroyed) {
+            return n.concat(destroyed);
+        }
+        return n;
     }
 
     function preRender() {
@@ -1388,31 +1394,28 @@
 
 
     function createSamplePoints() {
-        var numPoints = 3,
+        var numPoints = 4,
+            innerPoints = 6,
+            increment = (2 * Math.PI) / innerPoints,
+
             me = getBiggestMe();
+
         if (!me) return;
         if (Math.abs(me.size - lastSampledSize) < 10) {
             return;
         }
 
-        var resolution = me.size * 1.5 * resolutionMultiplier,
+        var resolution = me.size * resolutionMultiplier,
             pos,
             last, point;
         samplePoints = [];
-        sampleHeads = [];
 
-        for (var angle = 0; angle < Math.PI * 2; angle += Math.PI / 10) {
-            last = null;
-            for (var i = numPoints; i > 0; i--) {
+        for (var i = 1; i <= numPoints; i++) {
+            for (var angle = 0; angle < Math.PI * 2; angle += increment / Math.pow(2, i - 1)) {
                 pos = calculatePosition(angle, i * resolution, [0, 0]);
                 point = new SamplePoint(pos[0], pos[1]);
-                if (last) {
-                    point.next = last;
-                }
-                last = point;
                 samplePoints.push(point);
             }
-            sampleHeads.push(last);
         }
     }
 
@@ -1433,16 +1436,12 @@
     }
 
     function findBestDirection() {
-        var bestRisk = null, v, me = getBiggestMe(),
+        var me = getBiggestMe(),
             x = 0, y = 0, newVel = [0,0];
 
-        _.each(sampleHeads, function (head) {
-            v = [head.getChainRiskTotal(), head];
-            x += head.x * v[0];
-            y += head.y * v[0];
-            if (bestRisk === null || bestRisk[0] < v[0]) {
-                bestRisk = v;
-            }
+        _.each(samplePoints, function (point) {
+            x += point.x * point.risk;
+            y += point.y * point.risk;
         });
 
         // This term will allow us to escape local minima by reducing sampling
@@ -1482,8 +1481,14 @@
         newVel = scaleMagnitudeTo(newVel, me.getMaxVelocity() * 1.1);
 
         // Set your course for the Alderaan system.
-        autoPilotX = me.x + newVel[0];
-        autoPilotY = me.y + newVel[1];
+        if (state.threatened) {
+            autoPilotX = me.x + newVel[0];
+            autoPilotY = me.y + newVel[1];
+        } else {
+            autoPilotX = (me.x + newVel[0] + autoPilotX) / 2;
+            autoPilotY = (me.y + newVel[0] + autoPilotY) / 2;
+        }
+
     }
 
     /**
@@ -1564,8 +1569,13 @@
             // I am in danger of being absorbed
             return -2.5;
         }
-        // They can split and eat me!
-        return -3.5;
+
+        if (relativeSize >= 0.2) {
+            // They can (and want to) split and eat me!
+            return -3.5;
+        }
+        // blobs that are huge in comparison to me are not that dangerous.
+        return -0.5;
     }
 
     function log10(v) {
@@ -1704,7 +1714,7 @@
         var toRemove = [],
             now = Date.now(),
             me = getBiggestMe(),
-            liveOthers = _.pluck(getOthers(), 'id');
+            liveOthers = _.pluck(getOthers(false), 'id');
 
         _.each(destroyed, function(cell) {
             var elapsed = now - cell.destroyedTime;
