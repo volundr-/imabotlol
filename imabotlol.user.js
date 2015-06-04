@@ -8,191 +8,6 @@
 // @grant        none
 // ==/UserScript==
 
-/** Victor.js */
-/*!
- MIT License
-
- Copyright (c) 2011 Max Kueng, George Crabtree
-
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
-
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
- LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-if (!typeof Victor === 'function') {!function(t){if("object"==typeof exports)module.exports=t();else if("function"==typeof define&&define.amd)define(t);else{var n;"undefined"!=typeof window?n=window:"undefined"!=typeof global?n=global:"undefined"!=typeof self&&(n=self),n.Victor=t()}}(function(){return function t(n,i,o){function r(s,h){if(!i[s]){if(!n[s]){var u="function"==typeof require&&require;if(!h&&u)return u(s,!0);if(e)return e(s,!0);throw new Error("Cannot find module '"+s+"'")}var p=i[s]={exports:{}};n[s][0].call(p.exports,function(t){var i=n[s][1][t];return r(i?i:t)},p,p.exports,t,n,i,o)}return i[s].exports}for(var e="function"==typeof require&&require,s=0;s<o.length;s++)r(o[s]);return r}({1:[function(t,n,i){function o(t,n){return this instanceof o?(this.x=t||0,void(this.y=n||0)):new o(t,n)}function r(t,n){return Math.floor(Math.random()*(n-t+1)+t)}function e(t){return t*h}function s(t){return t/h}i=n.exports=o,o.fromArray=function(t){return new o(t[0]||0,t[1]||0)},o.fromObject=function(t){return new o(t.x||0,t.y||0)},o.prototype.addX=function(t){return this.x+=t.x,this},o.prototype.addY=function(t){return this.y+=t.y,this},o.prototype.add=function(t){return this.x+=t.x,this.y+=t.y,this},o.prototype.subtractX=function(t){return this.x-=t.x,this},o.prototype.subtractY=function(t){return this.y-=t.y,this},o.prototype.subtract=function(t){return this.x-=t.x,this.y-=t.y,this},o.prototype.divideX=function(t){return this.x/=t.x,this},o.prototype.divideY=function(t){return this.y/=t.y,this},o.prototype.divide=function(t){return this.x/=t.x,this.y/=t.y,this},o.prototype.invertX=function(){return this.x*=-1,this},o.prototype.invertY=function(){return this.y*=-1,this},o.prototype.invert=function(){return this.invertX(),this.invertY(),this},o.prototype.multiplyX=function(t){return this.x*=t.x,this},o.prototype.multiplyY=function(t){return this.y*=t.y,this},o.prototype.multiply=function(t){return this.x*=t.x,this.y*=t.y,this},o.prototype.normalize=function(){var t=this.length();return 0===t?(this.x=1,this.y=0):this.divide(o(t,t)),this},o.prototype.norm=o.prototype.normalize,o.prototype.limit=function(t,n){return Math.abs(this.x)>t&&(this.x*=n),Math.abs(this.y)>t&&(this.y*=n),this},o.prototype.randomize=function(t,n){return this.randomizeX(t,n),this.randomizeY(t,n),this},o.prototype.randomizeX=function(t,n){var i=Math.min(t.x,n.x),o=Math.max(t.x,n.x);return this.x=r(i,o),this},o.prototype.randomizeY=function(t,n){var i=Math.min(t.y,n.y),o=Math.max(t.y,n.y);return this.y=r(i,o),this},o.prototype.randomizeAny=function(t,n){return Math.round(Math.random())?this.randomizeX(t,n):this.randomizeY(t,n),this},o.prototype.unfloat=function(){return this.x=Math.round(this.x),this.y=Math.round(this.y),this},o.prototype.mixX=function(t,n){return"undefined"==typeof n&&(n=.5),this.x=(1-n)*this.x+n*t.x,this},o.prototype.mixY=function(t,n){return"undefined"==typeof n&&(n=.5),this.y=(1-n)*this.y+n*t.y,this},o.prototype.mix=function(t,n){return this.mixX(t,n),this.mixY(t,n),this},o.prototype.clone=function(){return new o(this.x,this.y)},o.prototype.copyX=function(t){return this.x=t.x,this},o.prototype.copyY=function(t){return this.y=t.y,this},o.prototype.copy=function(t){return this.copyX(t),this.copyY(t),this},o.prototype.zero=function(){return this.x=this.y=0,this},o.prototype.dot=function(t){return this.x*t.x+this.y*t.y},o.prototype.cross=function(t){return this.x*t.y-this.y*t.x},o.prototype.projectOnto=function(t){var n=(this.x*t.x+this.y*t.y)/(t.x*t.x+t.y*t.y);return this.x=n*t.x,this.y=n*t.y,this},o.prototype.horizontalAngle=function(){return Math.atan2(this.y,this.x)},o.prototype.horizontalAngleDeg=function(){return e(this.horizontalAngle())},o.prototype.verticalAngle=function(){return Math.atan2(this.x,this.y)},o.prototype.verticalAngleDeg=function(){return e(this.verticalAngle())},o.prototype.angle=o.prototype.horizontalAngle,o.prototype.angleDeg=o.prototype.horizontalAngleDeg,o.prototype.direction=o.prototype.horizontalAngle,o.prototype.rotate=function(t){var n=this.x*Math.cos(t)-this.y*Math.sin(t),i=this.x*Math.sin(t)+this.y*Math.cos(t);return this.x=n,this.y=i,this},o.prototype.rotateDeg=function(t){return t=s(t),this.rotate(t)},o.prototype.rotateBy=function(t){var n=this.angle()+t;return this.rotate(n)},o.prototype.rotateByDeg=function(t){return t=s(t),this.rotateBy(t)},o.prototype.distanceX=function(t){return this.x-t.x},o.prototype.absDistanceX=function(t){return Math.abs(this.distanceX(t))},o.prototype.distanceY=function(t){return this.y-t.y},o.prototype.absDistanceY=function(t){return Math.abs(this.distanceY(t))},o.prototype.distance=function(t){return Math.sqrt(this.distanceSq(t))},o.prototype.distanceSq=function(t){var n=this.distanceX(t),i=this.distanceY(t);return n*n+i*i},o.prototype.length=function(){return Math.sqrt(this.lengthSq())},o.prototype.lengthSq=function(){return this.x*this.x+this.y*this.y},o.prototype.magnitude=o.prototype.length,o.prototype.isZero=function(){return 0===this.x&&0===this.y},o.prototype.isEqualTo=function(t){return this.x===t.x&&this.y===t.y},o.prototype.toString=function(){return"x:"+this.x+", y:"+this.y},o.prototype.toArray=function(){return[this.x,this.y]},o.prototype.toObject=function(){return{x:this.x,y:this.y}};var h=180/Math.PI},{}]},{},[1])(1)});}
-function Vector (x, y) {
-    if (!(this instanceof Vector)) {
-        return new Vector(x, y);
-    }
-
-    if (typeof x !== 'number') {
-        console.log (typeof x);
-        throw new TypeError('x coordinate must be a Number');
-    }
-    if (typeof y !== 'number') {
-        throw new TypeError('y coordinate must be a Number');
-    }
-
-    this.x = x;
-    this.y = y;
-};
-
-Vector.fromArray = function (arr) {
-    return new Vector(arr[0], arr[1]);
-};
-
-Vector.fromObject = function (obj) {
-    return new Vector(obj.x, obj.y);
-};
-
-Vector.prototype.add = function (vec) {
-    return new Vector(this.x + vec.x, this.y + vec.y);
-};
-
-Vector.prototype.subtract = function (vec) {
-    return new Vector(this.x - vec.x, this.y - vec.y);
-};
-
-Vector.prototype.invert = function () {
-    return new Vector(-this.x, -this.y);
-};
-
-Vector.prototype.multiply = function (vec) {
-    return new Vector(vec.x * this.x, vec.y * this.y);
-};
-
-Vector.prototype.divide = function (vec) {
-    return new Vector(this.x / vec.x, this.y / vec.y);;
-};
-
-Vector.prototype.lengthSq = function () {
-    return this.x * this.x + this.y * this.y;
-};
-
-Vector.prototype.length = function () {
-    return Math.sqrt(this.lengthSq());
-};
-
-/**
- * Returns a vector of the same direction but with a length of 1, or the given length.
- * @param  {number} [scalar=1] Length of returned vector.
- * @return {Vector}
- */
-Vector.prototype.normalize = function (scalar) {
-    var length = this.length();
-    if (length === 0) {
-        return Vector(1, 0);
-    }
-    return this.divide(Vector(length, length));
-};
-
-Vector.prototype.mix = function (vec, amount) {
-    amount = amount || 0.5;
-    var x = (1 - amount) * this.x + amount * vec.x;
-    var y = (1 - amount) * this.y + amount * vec.y;
-    return new Vector(x, y);
-};
-
-Vector.prototype.perpendicular = function () {
-    return new Vector(-this.y, this.x); // this is 90 degrees counter-clockwise
-};
-
-Vector.prototype.snap = function (snapTo) {
-    var snap = function(val) {
-        return Math.round(val / snapTo) * snapTo;
-    };
-    return new Vector(snap(this.x), snap(this.y));
-};
-
-/**
- * Expand this vector to a given minimum length in the same direction as the original.
- *
- * Not valid on zero-length vectors.
- *
- * @param  {number} scalar Minimum length
- * @return {Vector}
- */
-Vector.prototype.minLength = function (scalar) {
-    return this.length() < scalar ? this.normalize(scalar) : this;
-};
-
-Vector.prototype.clone = function () {
-    return new Vector(this.x, this.y);
-};
-
-Vector.prototype.dot = function (vec2) {
-    return this.x * vec2.x + this.y * vec2.y;
-};
-
-Vector.prototype.projectOnto = function (vec2) {
-    return vec2.multiply(this.dot(vec2) / vec2.lengthSq());
-};
-
-Vector.prototype.angle = function () {
-    return Math.atan2(this.y, this.x);
-};
-
-Vector.prototype.angleDeg = function () {
-    return radian2degrees(this.angle());
-};
-
-Vector.prototype.slope = function () {
-    return this.y / this.x;
-};
-
-Vector.prototype.toString = function () {
-    return 'x:' + this.x + ', y:' + this.y;
-};
-
-Vector.prototype.toArray = function () {
-    return [ this.x, this.y ];
-};
-
-Vector.prototype.toObject = function () {
-    return { x: this.x, y: this.y };
-};
-
-Vector.prototype.equals = function (vec) {
-    return this.x === vec.x && this.y === vec.y;
-};
-
-Vector.prototype.magnitude = Vector.prototype.length;
-
-Vector.prototype.distanceSq = function(vec) {
-    var dx = this.x - vec.x,
-        dy = this.y - vec.y;
-    return dx * dx + dy * dy;
-};
-
-Vector.prototype.distance = function(vec) {
-    return Math.sqrt(this.distanceSq(vec));
-};
-
-var degrees = 180 / Math.PI;
-
-function radian2degrees (rad) {
-    return rad * degrees;
-}
-
-function degrees2radian (deg) {
-    return deg / degrees;
-}
-
-
 (function(f, g) {
     function Na() {
         ia = !0;
@@ -1539,8 +1354,6 @@ function degrees2radian (deg) {
                 if ((!player.isVirus && player.size < 20) || isMe(player)) {
                     return;
                 }
-
-                drawLine(me.x, me.y, player.x, player.y, getEnemyColor(me, player), 3);
                 playerVel = player.getVelocity();
                 drawLine(player.x, player.y, player.x + playerVel.x, player.y + playerVel.y, '#000', 5);
             });
@@ -2219,3 +2032,160 @@ function degrees2radian (deg) {
     };
 
 })(window, jQuery);
+function Vector (x, y) {
+    if (!(this instanceof Vector)) {
+        return new Vector(x, y);
+    }
+
+    if (typeof x !== 'number') {
+        console.log (typeof x);
+        throw new TypeError('x coordinate must be a Number');
+    }
+    if (typeof y !== 'number') {
+        throw new TypeError('y coordinate must be a Number');
+    }
+
+    this.x = x;
+    this.y = y;
+};
+
+Vector.fromArray = function (arr) {
+    return new Vector(arr[0], arr[1]);
+};
+
+Vector.fromObject = function (obj) {
+    return new Vector(obj.x, obj.y);
+};
+
+Vector.prototype.add = function (vec) {
+    return new Vector(this.x + vec.x, this.y + vec.y);
+};
+
+Vector.prototype.subtract = function (vec) {
+    return new Vector(this.x - vec.x, this.y - vec.y);
+};
+
+Vector.prototype.invert = function () {
+    return new Vector(-this.x, -this.y);
+};
+
+Vector.prototype.multiply = function (vec) {
+    return new Vector(vec.x * this.x, vec.y * this.y);
+};
+
+Vector.prototype.divide = function (vec) {
+    return new Vector(this.x / vec.x, this.y / vec.y);;
+};
+
+Vector.prototype.lengthSq = function () {
+    return this.x * this.x + this.y * this.y;
+};
+
+Vector.prototype.length = function () {
+    return Math.sqrt(this.lengthSq());
+};
+
+/**
+ * Returns a vector of the same direction but with a length of 1, or the given length.
+ * @param  {number} [scalar=1] Length of returned vector.
+ * @return {Vector}
+ */
+Vector.prototype.normalize = function (scalar) {
+    var length = this.length();
+    if (length === 0) {
+        return Vector(1, 0);
+    }
+    return this.divide(Vector(length, length));
+};
+
+Vector.prototype.mix = function (vec, amount) {
+    amount = amount || 0.5;
+    var x = (1 - amount) * this.x + amount * vec.x;
+    var y = (1 - amount) * this.y + amount * vec.y;
+    return new Vector(x, y);
+};
+
+Vector.prototype.perpendicular = function () {
+    return new Vector(-this.y, this.x); // this is 90 degrees counter-clockwise
+};
+
+Vector.prototype.snap = function (snapTo) {
+    var snap = function(val) {
+        return Math.round(val / snapTo) * snapTo;
+    };
+    return new Vector(snap(this.x), snap(this.y));
+};
+
+/**
+ * Expand this vector to a given minimum length in the same direction as the original.
+ *
+ * Not valid on zero-length vectors.
+ *
+ * @param  {number} scalar Minimum length
+ * @return {Vector}
+ */
+Vector.prototype.minLength = function (scalar) {
+    return this.length() < scalar ? this.normalize(scalar) : this;
+};
+
+Vector.prototype.clone = function () {
+    return new Vector(this.x, this.y);
+};
+
+Vector.prototype.dot = function (vec2) {
+    return this.x * vec2.x + this.y * vec2.y;
+};
+
+Vector.prototype.projectOnto = function (vec2) {
+    return vec2.multiply(this.dot(vec2) / vec2.lengthSq());
+};
+
+Vector.prototype.angle = function () {
+    return Math.atan2(this.y, this.x);
+};
+
+Vector.prototype.angleDeg = function () {
+    return radian2degrees(this.angle());
+};
+
+Vector.prototype.slope = function () {
+    return this.y / this.x;
+};
+
+Vector.prototype.toString = function () {
+    return 'x:' + this.x + ', y:' + this.y;
+};
+
+Vector.prototype.toArray = function () {
+    return [ this.x, this.y ];
+};
+
+Vector.prototype.toObject = function () {
+    return { x: this.x, y: this.y };
+};
+
+Vector.prototype.equals = function (vec) {
+    return this.x === vec.x && this.y === vec.y;
+};
+
+Vector.prototype.magnitude = Vector.prototype.length;
+
+Vector.prototype.distanceSq = function(vec) {
+    var dx = this.x - vec.x,
+        dy = this.y - vec.y;
+    return dx * dx + dy * dy;
+};
+
+Vector.prototype.distance = function(vec) {
+    return Math.sqrt(this.distanceSq(vec));
+};
+
+var degrees = 180 / Math.PI;
+
+function radian2degrees (rad) {
+    return rad * degrees;
+}
+
+function degrees2radian (deg) {
+    return deg / degrees;
+}
