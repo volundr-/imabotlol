@@ -1474,9 +1474,8 @@ function degrees2radian (deg) {
     SamplePoint.prototype.getChainRiskTotal = function () {
         // Chain tails are weighted less than chain heads.
         return this.risk
-            + /*1/(this.children.length?this.children.length:1)
-                **/ _.reduce(this.children, function(result, n) {return result + n.getChainRiskTotal();}, 0);
-            //(this.next ? 0.75 * this.next.getChainRiskTotal() : 0);
+            + 1/(this.children.length?this.children.length:1)
+                * _.reduce(this.children, function(result, n) {return result + n.getChainRiskTotal();}, 0);
     };
 
     function getMe() {
@@ -1717,7 +1716,7 @@ function degrees2radian (deg) {
         // Add the difference between the current velocity vector and the desired velocity vector
         // to the desired velocity vector - this will make the steering "overcorrect" and get
         // on target faster.
-        //newVel = newVel.add(newVel.subtract(me.getVelocity()));
+        newVel = newVel.add(newVel.subtract(me.getVelocity()).multiply(Vector(0.5,0.5)));
 
         // Re-scale the final steering vector to slightly more than the maximum achievable
         // velocity of the player.
